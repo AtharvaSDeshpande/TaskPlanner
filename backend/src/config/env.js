@@ -13,10 +13,24 @@ if (missing.length) {
 
 // Allowed browser origins for CORS. CLIENT_URL may be a comma-separated list so
 // the same backend can serve the dev server (5173) and a prod preview (4173).
-const clientUrls = (process.env.CLIENT_URL || 'http://localhost:5173,http://localhost:4173')
+// Browsers send `Origin` with no trailing slash and no path, so we normalize by
+// stripping any trailing slash to keep the exact-match comparison robust.
+const stripSlash = (s) => s.trim().replace(/\/+$/, '');
+
+// Deployed frontends that should always be allowed, regardless of CLIENT_URL.
+const alwaysAllowedOrigins = [
+  'https://taskplanner.adcodes.co.in',
+  'https://task-planner-six-lac.vercel.app',
+];
+
+const envClientUrls = (process.env.CLIENT_URL || 'http://localhost:5173,http://localhost:4173')
   .split(',')
-  .map((s) => s.trim())
+  .map(stripSlash)
   .filter(Boolean);
+
+// Keep CLIENT_URL entries first so clientUrls[0] (used for email links) stays the
+// configured production origin; append the always-allowed frontends for CORS.
+const clientUrls = [...new Set([...envClientUrls, ...alwaysAllowedOrigins])];
 
 export const env = {
   port: Number(process.env.PORT) || 5000,
