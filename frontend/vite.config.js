@@ -8,7 +8,7 @@ export default defineConfig({
     proxy: {
       // Forward API calls to the Express backend during development.
       '/api': {
-        target: 'http://localhost:5001',
+        target: 'https://taskplanner-mor2.onrender.com',
         changeOrigin: true,
       },
     },
