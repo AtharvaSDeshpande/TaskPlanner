@@ -12,7 +12,6 @@ import {
   DialogTitle,
   Divider,
   IconButton,
-  InputAdornment,
   ListItemIcon,
   Menu,
   MenuItem,
@@ -28,8 +27,6 @@ import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
 import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useEncryptedTodos, useTodoMutations } from '../queries/hooks.js';
@@ -57,75 +54,8 @@ function normalizeStatus(obj) {
   return obj.completed ? 'done' : 'todo';
 }
 
-// Prompts for the password when the encryption key isn't in this tab's session.
-// The password is used only to re-derive the key locally — it never goes to the
-// server beyond the normal login check.
-function UnlockGate({ onUnlock }) {
-  const [password, setPassword] = useState('');
-  const [show, setShow] = useState(false);
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  const submit = async (e) => {
-    e.preventDefault();
-    setBusy(true);
-    setError('');
-    try {
-      await onUnlock(password);
-    } catch (err) {
-      setError(err.message || 'Could not unlock. Check your password.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Box sx={{ maxWidth: 460, mx: 'auto', mt: 6 }}>
-      <Card>
-        <CardContent sx={{ p: 4, textAlign: 'center' }}>
-          <LockRoundedIcon color="primary" sx={{ fontSize: 48, mb: 1 }} />
-          <Typography variant="h6" gutterBottom>
-            Unlock your encrypted board
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Your board is end-to-end encrypted. Re-enter your password to unlock it on this device —
-            it never leaves your browser.
-          </Typography>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2, textAlign: 'left' }}>
-              {error}
-            </Alert>
-          )}
-          <Box component="form" onSubmit={submit}>
-            <TextField
-              label="Password"
-              type={show ? 'text' : 'password'}
-              fullWidth
-              autoFocus
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton onClick={() => setShow((s) => !s)} edge="end" tabIndex={-1}>
-                      {show ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }} disabled={busy}>
-              {busy ? 'Unlocking…' : 'Unlock'}
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
-    </Box>
-  );
-}
-
 export default function TodosPage() {
-  const { cryptoKey, unlock } = useAuth();
+  const { cryptoKey } = useAuth();
   const [items, setItems] = useState([]); // decrypted, with optimistic updates
   const [decrypting, setDecrypting] = useState(false);
   const [error, setError] = useState('');
@@ -176,15 +106,9 @@ export default function TodosPage() {
 
   const loading = isPending || decrypting;
 
-  // On a fresh tab the token is restored but the key isn't — prompt to unlock.
-  if (!cryptoKey) {
-    return (
-      <Box>
-        <PageHeader title="My To-Do Board" subtitle="Private, end-to-end encrypted task board." />
-        <UnlockGate onUnlock={unlock} />
-      </Box>
-    );
-  }
+  // Being authenticated implies the E2E key is loaded (see AuthContext), so this
+  // only guards the brief moment right after login while the key is being set.
+  if (!cryptoKey) return <Loading />;
 
   const openCreate = (status = 'todo') => {
     setDraft({ ...EMPTY, status });

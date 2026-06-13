@@ -11,14 +11,26 @@ export function AuthProvider({ children }) {
   const [cryptoKey, setCryptoKey] = useState(null); // AES key for the E2E todo board
   const [loading, setLoading] = useState(true);
 
-  // Restore the session on first load. The token persists in localStorage; the
-  // derived key persists only in sessionStorage, so on a fresh tab the user is
-  // authenticated but must re-unlock the board by re-entering their password.
+  // Restore the session on first load. Both the token and the derived E2E key
+  // persist in localStorage, so a returning user is authenticated AND their
+  // encrypted board (stored in the DB) decrypts automatically.
+  //
+  // We require the cached key for a valid session: if the token is present but
+  // the key is gone, we can't decrypt the board, so we drop the session and let
+  // the user log in again (which re-derives the key). This keeps "authenticated"
+  // and "has a usable key" in lock-step, so there's never a separate unlock step.
   useEffect(() => {
     let active = true;
     async function restore() {
       if (!getToken()) {
         setLoading(false);
+        return;
+      }
+      const key = await loadCachedKey();
+      if (!key) {
+        clearToken();
+        clearKey();
+        if (active) setLoading(false);
         return;
       }
       try {
@@ -30,8 +42,7 @@ export function AuthProvider({ children }) {
           UserEmail: data.user.email,
           Role: data.user.role,
         });
-        const key = await loadCachedKey();
-        if (key) setCryptoKey(key);
+        setCryptoKey(key);
       } catch {
         clearToken();
         clearKey();
@@ -63,23 +74,6 @@ export function AuthProvider({ children }) {
     setCryptoKey(key);
     return data.user;
   }, []);
-
-  // Re-derive the encryption key on a fresh tab/session where only the token
-  // survived. Re-authenticates so a wrong password is rejected before we derive
-  // (and cache) an unusable key.
-  const unlock = useCallback(
-    async (password) => {
-      const { data } = await api.post('/auth/login', { email: user.email, password });
-      setToken(data.token);
-      setUser(data.user);
-      const key = await deriveKey(password, data.user.encSalt);
-      await cacheKey(key);
-      setCryptoKey(key);
-      logger.info('Encrypted board unlocked for {UserEmail}', { UserEmail: user.email });
-      return key;
-    },
-    [user],
-  );
 
   const logout = useCallback(() => {
     logger.info('User logged out');
@@ -113,11 +107,10 @@ export function AuthProvider({ children }) {
       can: (key, opts) => canFn(user, key, opts),
       login,
       logout,
-      unlock,
       applyCredentialChange,
       setUser,
     }),
-    [user, cryptoKey, loading, login, logout, unlock, applyCredentialChange],
+    [user, cryptoKey, loading, login, logout, applyCredentialChange],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
