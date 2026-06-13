@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { Outlet, useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import {
   AppBar,
@@ -40,6 +40,7 @@ import { can, canManageAnyAssignment } from '../utils/permissions.js';
 import { brandGradient } from '../theme.js';
 import ThemeToggle from './ThemeToggle.jsx';
 import EnvBadge from './EnvBadge.jsx';
+import Loading from './Loading.jsx';
 
 const DRAWER_WIDTH = 264;
 
@@ -247,7 +248,13 @@ export default function AppLayout() {
         }}
       >
         <Toolbar />
-        <Outlet />
+        {/* Suspense lives here — inside the layout — so lazy page chunks only
+            swap the content area. Keeping AppLayout (and the mobile Drawer)
+            mounted across navigations avoids tearing down an open Drawer
+            mid-transition, which previously left a stuck dark backdrop. */}
+        <Suspense fallback={<Loading />}>
+          <Outlet />
+        </Suspense>
       </Box>
     </Box>
   );
