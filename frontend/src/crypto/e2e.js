@@ -2,11 +2,16 @@
 //
 // The AES-GCM key is derived from the user's login password (PBKDF2) plus a
 // per-user salt. Plaintext never leaves the browser — the server only ever
-// stores the resulting ciphertext + IV and never sees the password or key. The
-// derived key is cached in sessionStorage so it survives a tab refresh but is
-// gone when the tab closes (a fresh tab must re-unlock by re-entering it).
+// stores the resulting ciphertext + IV (in the DB) and never sees the password
+// or key. The encrypted to-dos live in the database, so they sync across
+// devices; logging in on any device re-derives the key from the password.
+//
+// The derived key is cached in localStorage (same lifetime as the auth token)
+// so the board stays unlocked across refreshes, new tabs and browser restarts —
+// no per-session "unlock on this device" prompt. It is cleared on logout.
 
 const KEY_STORAGE = 'careplus.e2eKey';
+const store = window.localStorage;
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
@@ -31,7 +36,7 @@ function hexToBytes(hex) {
 }
 
 // Derives an extractable AES-GCM key from the password + per-user salt so it can
-// be cached in sessionStorage and re-imported after a refresh.
+// be cached locally and re-imported after a refresh.
 export async function deriveKey(password, saltHex) {
   const baseKey = await crypto.subtle.importKey(
     'raw',
@@ -52,11 +57,11 @@ export async function deriveKey(password, saltHex) {
 
 export async function cacheKey(key) {
   const raw = await crypto.subtle.exportKey('raw', key);
-  sessionStorage.setItem(KEY_STORAGE, bufToB64(raw));
+  store.setItem(KEY_STORAGE, bufToB64(raw));
 }
 
 export async function loadCachedKey() {
-  const b64 = sessionStorage.getItem(KEY_STORAGE);
+  const b64 = store.getItem(KEY_STORAGE);
   if (!b64) return null;
   return crypto.subtle.importKey('raw', b64ToBuf(b64), { name: 'AES-GCM' }, true, [
     'encrypt',
@@ -65,11 +70,7 @@ export async function loadCachedKey() {
 }
 
 export function clearKey() {
-  sessionStorage.removeItem(KEY_STORAGE);
-}
-
-export function hasCachedKey() {
-  return Boolean(sessionStorage.getItem(KEY_STORAGE));
+  store.removeItem(KEY_STORAGE);
 }
 
 // Encrypts a JS object → { ciphertext, iv } (both base64).
