@@ -31,6 +31,7 @@ import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
 import CorporateFareRoundedIcon from '@mui/icons-material/CorporateFareRounded';
 import Diversity3RoundedIcon from '@mui/icons-material/Diversity3Rounded';
 import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
+import RateReviewRoundedIcon from '@mui/icons-material/RateReviewRounded';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import AdminPanelSettingsRoundedIcon from '@mui/icons-material/AdminPanelSettingsRounded';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -191,6 +192,12 @@ export default function AppLayout() {
                 <LockResetRoundedIcon fontSize="small" />
               </ListItemIcon>
               Change password
+            </MenuItem>
+            <MenuItem component={RouterLink} to="/feedback" onClick={() => setAnchorEl(null)} data-testid="menu-feedback">
+              <ListItemIcon>
+                <RateReviewRoundedIcon fontSize="small" />
+              </ListItemIcon>
+              Feedback
             </MenuItem>
             <MenuItem
               data-testid="menu-logout"
