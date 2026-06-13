@@ -370,3 +370,12 @@ export function useGenerateGroups() {
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.groups() }),
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Feedback
+// ─────────────────────────────────────────────────────────────────────────────
+export function useSubmitFeedback() {
+  return useMutation({
+    mutationFn: (body) => api.post('/feedback', body).then((r) => r.data),
+  });
+}

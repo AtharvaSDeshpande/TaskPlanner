@@ -57,6 +57,47 @@ function StatCard({ icon: Icon, label, value, color = 'primary' }) {
   );
 }
 
+// Shared list card used by both the "Upcoming" and "Missed" deadline sections so
+// the two render identically; only the title, accent and empty-state copy differ.
+function DeadlineListCard({ title, items, accent = 'primary', emptyTitle, emptyDescription, testId }) {
+  return (
+    <Card data-testid={testId}>
+      <CardContent>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+          <Typography variant="h6">{title}</Typography>
+          <Button size="small" component={RouterLink} to="/deadlines">
+            View all
+          </Button>
+        </Stack>
+        <Divider />
+        {items.length === 0 ? (
+          <EmptyState icon={EventNoteRoundedIcon} title={emptyTitle} description={emptyDescription} />
+        ) : (
+          <List disablePadding>
+            {items.slice(0, 6).map((a) => {
+              const meta = deadlineMeta(a.dueAt);
+              return (
+                <ListItem key={a._id} divider sx={{ px: 0 }}>
+                  <ListItemAvatar>
+                    <Avatar variant="rounded" sx={{ bgcolor: `${accent}.light` }}>
+                      <AssignmentRoundedIcon />
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={<Typography fontWeight={600}>{a.title}</Typography>}
+                    secondary={`${a.course?.title || a.course?.code || 'Course'} · ${formatDateTime(a.dueAt)}`}
+                  />
+                  <Chip size="small" color={meta.color} label={meta.label} variant="outlined" />
+                </ListItem>
+              );
+            })}
+          </List>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   // Capability-driven (a custom-role admin or course moderator works too).
@@ -68,11 +109,12 @@ export default function DashboardPage() {
   // All cached & shared with the other pages that read the same queries.
   const { data: upcoming = [], isPending: loadingUpcoming } = useAssignments('upcoming');
   const { data: studentData } = useUsers({ role: 'student' }, { enabled: isAdmin });
-  const { data: pastAssignments } = useAssignments('past', { enabled: isStudent });
+  const { data: past = [] } = useAssignments('past');
 
   const studentCount = studentData?.count ?? null;
-  // Overdue = past its due date and not yet marked done by the student.
-  const overdueCount = isStudent && pastAssignments ? pastAssignments.filter((a) => !a.done).length : null;
+  // Missed = past its due date and not yet marked done.
+  const missed = past.filter((a) => !a.done);
+  const overdueCount = isStudent ? missed.length : null;
 
   if (loadingUpcoming) return <Loading />;
 
@@ -144,44 +186,14 @@ export default function DashboardPage() {
 
       <Grid container spacing={2.5} sx={{ mt: 0.5 }}>
         <Grid item xs={12} md={8}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                <Typography variant="h6">Upcoming deadlines</Typography>
-                <Button size="small" component={RouterLink} to="/deadlines">
-                  View all
-                </Button>
-              </Stack>
-              <Divider />
-              {upcoming.length === 0 ? (
-                <EmptyState
-                  icon={EventNoteRoundedIcon}
-                  title="Nothing due — you're all caught up!"
-                  description="New assignments will appear here as they're posted."
-                />
-              ) : (
-                <List disablePadding>
-                  {upcoming.slice(0, 6).map((a) => {
-                    const meta = deadlineMeta(a.dueAt);
-                    return (
-                      <ListItem key={a._id} divider sx={{ px: 0 }}>
-                        <ListItemAvatar>
-                          <Avatar variant="rounded" sx={{ bgcolor: 'primary.light' }}>
-                            <AssignmentRoundedIcon />
-                          </Avatar>
-                        </ListItemAvatar>
-                        <ListItemText
-                          primary={<Typography fontWeight={600}>{a.title}</Typography>}
-                          secondary={`${a.course} · ${formatDateTime(a.dueAt)}`}
-                        />
-                        <Chip size="small" color={meta.color} label={meta.label} variant="outlined" />
-                      </ListItem>
-                    );
-                  })}
-                </List>
-              )}
-            </CardContent>
-          </Card>
+          <DeadlineListCard
+            title="Upcoming deadlines"
+            items={upcoming}
+            accent="primary"
+            emptyTitle="Nothing due — you're all caught up!"
+            emptyDescription="New assignments will appear here as they're posted."
+            testId="upcoming-deadlines"
+          />
         </Grid>
 
         <Grid item xs={12} md={4}>
@@ -205,6 +217,18 @@ export default function DashboardPage() {
               </Button>
             </CardContent>
           </Card>
+        </Grid>
+
+        {/* Missed deadlines — same card as "Upcoming", placed directly below it. */}
+        <Grid item xs={12} md={8}>
+          <DeadlineListCard
+            title="Missed deadlines"
+            items={missed}
+            accent="error"
+            emptyTitle="No missed deadlines — nice work!"
+            emptyDescription="Past-due assignments you haven't completed will show up here."
+            testId="missed-deadlines"
+          />
         </Grid>
       </Grid>
     </Box>

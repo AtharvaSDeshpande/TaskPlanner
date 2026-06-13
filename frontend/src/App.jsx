@@ -21,6 +21,7 @@ const RolesPage = lazy(() => import('./pages/manage/RolesPage.jsx'));
 const SemesterPage = lazy(() => import('./pages/manage/SemesterPage.jsx'));
 const OrganizationsPage = lazy(() => import('./pages/OrganizationsPage.jsx'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage.jsx'));
+const FeedbackPage = lazy(() => import('./pages/FeedbackPage.jsx'));
 const GroupsPage = lazy(() => import('./pages/groups/GroupsPage.jsx'));
 const GroupDetailPage = lazy(() => import('./pages/groups/GroupDetailPage.jsx'));
 
@@ -135,6 +136,7 @@ export default function App() {
           {/* Available to everyone, including the owner */}
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/change-password" element={<ChangePasswordPage />} />
+          <Route path="/feedback" element={<FeedbackPage />} />
         </Route>
 
         <Route path="/" element={<RoleHome />} />
