@@ -43,14 +43,20 @@ export default function DeadlinesPage() {
   const { data: assignments = [], isPending: loading } = useAssignments(scopeKey);
   const progress = useSetAssignmentProgress();
 
-  // Optimistically flip the done flag in the cache, then persist.
+  // Optimistically update the cache, then persist. In the "Upcoming" tab a
+  // completed assignment leaves the list (it lives under Past/All); elsewhere we
+  // just flip its done flag. On error we re-fetch to resync.
   const toggleDone = (a) => {
-    const patch = (done) =>
-      qc.setQueryData(qk.assignments(scopeKey), (old) =>
-        old?.map((x) => (x._id === a._id ? { ...x, done } : x)),
-      );
-    patch(!a.done);
-    progress.mutate({ id: a._id, completed: !a.done }, { onError: () => patch(a.done) });
+    const nextDone = !a.done;
+    qc.setQueryData(qk.assignments(scopeKey), (old) => {
+      if (!old) return old;
+      if (scopeKey === 'upcoming' && nextDone) return old.filter((x) => x._id !== a._id);
+      return old.map((x) => (x._id === a._id ? { ...x, done: nextDone } : x));
+    });
+    progress.mutate(
+      { id: a._id, completed: nextDone },
+      { onError: () => qc.invalidateQueries({ queryKey: qk.assignments(scopeKey) }) },
+    );
   };
 
   const courses = useMemo(
@@ -139,8 +145,11 @@ export default function DeadlinesPage() {
                         )}
                       </Stack>
                       <Stack direction="row" spacing={0.75} alignItems="center">
-                        {a.done && <Chip size="small" color="success" label="Done" icon={<CheckCircleRoundedIcon />} />}
-                        <DeadlineChip dueAt={a.dueAt} done={a.done} />
+                        {a.done ? (
+                          <Chip size="small" color="success" label="Done" icon={<CheckCircleRoundedIcon />} />
+                        ) : (
+                          <DeadlineChip dueAt={a.dueAt} />
+                        )}
                       </Stack>
                     </Stack>
                     <Typography

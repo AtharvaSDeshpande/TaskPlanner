@@ -2,6 +2,7 @@ import { Component } from 'react';
 import { Box, Button, Typography, Stack } from '@mui/material';
 import ReportProblemRoundedIcon from '@mui/icons-material/ReportProblemRounded';
 import { logger } from '../logger/logger.jsx';
+import i18n from '../i18n/index.js';
 
 // Catches render-time errors anywhere below it so a single bad component
 // can't white-screen the whole app.
@@ -30,12 +31,12 @@ export default class ErrorBoundary extends Component {
       <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', p: 3 }}>
         <Stack spacing={2} alignItems="center" sx={{ maxWidth: 460, textAlign: 'center' }}>
           <ReportProblemRoundedIcon color="warning" sx={{ fontSize: 56 }} />
-          <Typography variant="h5">Something went wrong</Typography>
+          <Typography variant="h5">{i18n.t('errorBoundary.title')}</Typography>
           <Typography variant="body2" color="text.secondary">
-            An unexpected error occurred while rendering this page. Reloading usually fixes it.
+            {i18n.t('errorBoundary.body')}
           </Typography>
           <Button variant="contained" onClick={() => window.location.assign('/')}>
-            Reload the app
+            {i18n.t('errorBoundary.reload')}
           </Button>
         </Stack>
       </Box>

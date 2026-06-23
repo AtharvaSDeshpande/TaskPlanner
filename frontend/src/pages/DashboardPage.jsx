@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   Card,
+  CardActionArea,
   CardContent,
   Chip,
   Divider,
@@ -18,20 +19,44 @@ import {
 import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import GroupRoundedIcon from '@mui/icons-material/GroupRounded';
-import ChecklistRoundedIcon from '@mui/icons-material/ChecklistRounded';
 import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
 import AssignmentLateRoundedIcon from '@mui/icons-material/AssignmentLateRounded';
-import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
+import glim from "../../assets/glim.webp"
+import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
+import EventRoundedIcon from '@mui/icons-material/EventRounded';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { isThisWeek } from 'date-fns';
 import { useAuth } from '../context/AuthContext.jsx';
 import { can as canFn, canManageAnyAssignment } from '../utils/permissions.js';
-import { useAssignments, useUsers } from '../queries/hooks.js';
+import { useAssignments, useUsers, useAnnouncements } from '../queries/hooks.js';
 import { deadlineMeta, formatDateTime } from '../utils/format.js';
-import { brandGradient } from '../theme.js';
 import Loading from '../components/Loading.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 
-function StatCard({ icon: Icon, label, value, color = 'primary' }) {
+// A stat tile. When `to` is provided it becomes a link to the relevant page.
+function StatCard({ icon: Icon, label, value, color = 'primary', to }) {
+  // `icon` may be an MUI icon component or an image URL (e.g. the GLIM logo).
+  const isImg = typeof Icon === 'string';
+  const body = (
+    <CardContent>
+      <Stack direction="row" spacing={2} alignItems="center">
+        <Avatar
+          variant="rounded"
+          src={isImg ? Icon : undefined}
+          imgProps={isImg ? { alt: '', style: { objectFit: 'contain' } } : undefined}
+          sx={{ bgcolor: isImg ? 'transparent' : `${color}.main`, width: 48, height: 48 }}
+        >
+          {isImg ? null : <Icon />}
+        </Avatar>
+        <Box>
+          <Typography variant="h4">{value}</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {label}
+          </Typography>
+        </Box>
+      </Stack>
+    </CardContent>
+  );
   return (
     <Card
       sx={{
@@ -40,18 +65,57 @@ function StatCard({ icon: Icon, label, value, color = 'primary' }) {
         '&:hover': { transform: 'translateY(-3px)', boxShadow: 6 },
       }}
     >
+      {to ? (
+        <CardActionArea component={RouterLink} to={to} sx={{ height: '100%' }} data-testid={`stat-link-${to.replace(/\//g, '-')}`}>
+          {body}
+        </CardActionArea>
+      ) : (
+        body
+      )}
+    </Card>
+  );
+}
+
+// Compact recent-announcements list for the dashboard.
+function RecentAnnouncementsCard({ items }) {
+  return (
+    <Card sx={{ height: '100%' }} data-testid="recent-announcements">
       <CardContent>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Avatar variant="rounded" sx={{ bgcolor: `${color}.main`, width: 48, height: 48 }}>
-            <Icon />
-          </Avatar>
-          <Box>
-            <Typography variant="h4">{value}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {label}
-            </Typography>
-          </Box>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+          <Typography variant="h6">Announcements</Typography>
+          <Button size="small" component={RouterLink} to="/announcements">
+            View all
+          </Button>
         </Stack>
+        <Divider />
+        {items.length === 0 ? (
+          <EmptyState
+            icon={CampaignRoundedIcon}
+            title="No announcements yet"
+            description="Updates from your staff will appear here."
+          />
+        ) : (
+          <List disablePadding>
+            {items.slice(0, 5).map((a) => (
+              <ListItem key={a.id} divider sx={{ px: 0, alignItems: 'flex-start' }}>
+                <ListItemAvatar sx={{ minWidth: 44 }}>
+                  <Avatar
+                    variant="rounded"
+                    sx={{ bgcolor: a.type === 'deadline' ? 'warning.light' : 'info.light', width: 34, height: 34 }}
+                  >
+                    {a.type === 'deadline' ? <EventRoundedIcon fontSize="small" /> : <InfoOutlinedIcon fontSize="small" />}
+                  </Avatar>
+                </ListItemAvatar>
+                <ListItemText
+                  primary={<Typography fontWeight={600} noWrap>{a.title}</Typography>}
+                  secondary={[a.subject?.code, a.dueAt ? formatDateTime(a.dueAt) : a.createdBy?.name ? `by ${a.createdBy.name}` : '']
+                    .filter(Boolean)
+                    .join(' · ')}
+                />
+              </ListItem>
+            ))}
+          </List>
+        )}
       </CardContent>
     </Card>
   );
@@ -110,6 +174,7 @@ export default function DashboardPage() {
   const { data: upcoming = [], isPending: loadingUpcoming } = useAssignments('upcoming');
   const { data: studentData } = useUsers({ role: 'student' }, { enabled: isAdmin });
   const { data: past = [] } = useAssignments('past');
+  const { data: announcements = [] } = useAnnouncements();
 
   const studentCount = studentData?.count ?? null;
   // Missed = past its due date and not yet marked done.
@@ -136,19 +201,19 @@ export default function DashboardPage() {
 
       <Grid container spacing={2.5} sx={{ mb: 1 }}>
         <Grid item xs={12} sm={6} md={colMd}>
-          <StatCard icon={EventNoteRoundedIcon} label="Upcoming deadlines" value={upcoming.length} />
+          <StatCard icon={EventNoteRoundedIcon} label="Upcoming deadlines" value={upcoming.length} to="/deadlines" />
         </Grid>
         <Grid item xs={12} sm={6} md={colMd}>
-          <StatCard icon={AccessTimeRoundedIcon} label="Due this week" value={dueThisWeek.length} color="warning" />
+          <StatCard icon={AccessTimeRoundedIcon} label="Due this week" value={dueThisWeek.length} color="warning" to="/deadlines" />
         </Grid>
         {isAdmin && (
           <Grid item xs={12} sm={6} md={colMd}>
-            <StatCard icon={GroupRoundedIcon} label="Students" value={studentCount ?? '—'} color="secondary" />
+            <StatCard icon={GroupRoundedIcon} label="Students" value={studentCount ?? '—'} color="secondary" to="/manage/users" />
           </Grid>
         )}
         {isModerator && (
           <Grid item xs={12} sm={6} md={colMd}>
-            <StatCard icon={SchoolRoundedIcon} label="Your program" value={user.program || '—'} color="secondary" />
+            <StatCard icon={glim} label="Your program" value={user.program || '—'} color="secondary" to="/manage/assignments" />
           </Grid>
         )}
         {isStudent && (
@@ -158,6 +223,7 @@ export default function DashboardPage() {
               label="Overdue"
               value={overdueCount ?? '—'}
               color="error"
+              to="/deadlines"
             />
           </Grid>
         )}
@@ -197,26 +263,7 @@ export default function DashboardPage() {
         </Grid>
 
         <Grid item xs={12} md={4}>
-          <Card sx={{ background: brandGradient, color: '#fff', border: 'none', height: '100%' }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Your private to-do list
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9, mb: 2 }}>
-                Plan your study tasks on a private Kanban board. Your tasks are encrypted and tied to
-                your account — they stay safe even if you change your password.
-              </Typography>
-              <Button
-                variant="contained"
-                color="secondary"
-                component={RouterLink}
-                to="/todos"
-                startIcon={<ChecklistRoundedIcon />}
-              >
-                Open my list
-              </Button>
-            </CardContent>
-          </Card>
+          <RecentAnnouncementsCard items={announcements} />
         </Grid>
 
         {/* Missed deadlines — same card as "Upcoming", placed directly below it. */}

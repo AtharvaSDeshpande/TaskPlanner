@@ -10,6 +10,7 @@ import semesterRoutes from './semesterRoutes.js';
 import courseRoutes from './courseRoutes.js';
 import logRoutes from './logRoutes.js';
 import feedbackRoutes from './feedbackRoutes.js';
+import announcementRoutes from './announcementRoutes.js';
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.use('/todos', todoRoutes);
 router.use('/groups', groupRoutes);
 router.use('/logs', logRoutes);
 router.use('/feedback', feedbackRoutes);
+router.use('/announcements', announcementRoutes);
 
 export default router;

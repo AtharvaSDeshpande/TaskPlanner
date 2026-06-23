@@ -32,4 +32,5 @@ export const qk = {
   semesters: () => ['semesters'],
   activeSemester: () => ['semesters', 'active'],
   courses: (semesterId = 'active') => ['courses', semesterId],
+  announcements: () => ['announcements'],
 };

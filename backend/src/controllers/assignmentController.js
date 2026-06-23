@@ -78,11 +78,15 @@ export const listAssignments = asyncHandler(async (req, res) => {
   }).select('assignment');
   const doneSet = new Set(done.map((p) => String(p.assignment)));
 
-  const out = assignments.map((a) => ({
+  let out = assignments.map((a) => ({
     ...a.toObject(),
     done: doneSet.has(String(a._id)),
     canManage: canManageCourse(ctx, a.course?._id || a.course),
   }));
+
+  // "Upcoming" is the actionable list, so an assignment the caller has marked
+  // done drops out of it (it stays visible under "Past"/"All").
+  if (req.query.scope === 'upcoming') out = out.filter((a) => !a.done);
 
   res.json({ success: true, count: out.length, assignments: out });
 });

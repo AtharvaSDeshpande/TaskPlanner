@@ -379,3 +379,30 @@ export function useSubmitFeedback() {
     mutationFn: (body) => api.post('/feedback', body).then((r) => r.data),
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Announcements
+// ─────────────────────────────────────────────────────────────────────────────
+export function useAnnouncements(options = {}) {
+  return useQuery({
+    queryKey: qk.announcements(),
+    queryFn: async () => (await api.get('/announcements')).data.announcements,
+    ...options,
+  });
+}
+
+export function useCreateAnnouncement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body) => api.post('/announcements', body).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.announcements() }),
+  });
+}
+
+export function useDeleteAnnouncement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => api.delete(`/announcements/${id}`).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.announcements() }),
+  });
+}

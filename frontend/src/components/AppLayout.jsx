@@ -27,20 +27,22 @@ import LibraryAddRoundedIcon from '@mui/icons-material/LibraryAddRounded';
 import GroupRoundedIcon from '@mui/icons-material/GroupRounded';
 import LockResetRoundedIcon from '@mui/icons-material/LockResetRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
-import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
 import CorporateFareRoundedIcon from '@mui/icons-material/CorporateFareRounded';
 import Diversity3RoundedIcon from '@mui/icons-material/Diversity3Rounded';
 import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
 import RateReviewRoundedIcon from '@mui/icons-material/RateReviewRounded';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
 import AdminPanelSettingsRoundedIcon from '@mui/icons-material/AdminPanelSettingsRounded';
 import { useAuth } from '../context/AuthContext.jsx';
 import { initials, roleLabel } from '../utils/format.js';
+import { useTranslation } from 'react-i18next';
 import { can, canManageAnyAssignment } from '../utils/permissions.js';
 import { brandGradient } from '../theme.js';
 import ThemeToggle from './ThemeToggle.jsx';
 import EnvBadge from './EnvBadge.jsx';
 import Loading from './Loading.jsx';
+import glim from "../../assets/glim.webp"
 
 const DRAWER_WIDTH = 264;
 
@@ -49,18 +51,20 @@ const isMember = (u) => u?.role !== 'owner';
 // Nav items are gated by capability (permissions), not just the base role, so a
 // student promoted to course moderator sees "Manage Assignments", etc.
 const NAV = [
-  { label: 'Organizations', to: '/organizations', icon: CorporateFareRoundedIcon, show: (u) => u?.role === 'owner' },
-  { label: 'Dashboard', to: '/dashboard', icon: SpaceDashboardRoundedIcon, show: isMember },
-  { label: 'Deadlines', to: '/deadlines', icon: EventNoteRoundedIcon, show: isMember },
-  { label: 'My To-Do Board', to: '/todos', icon: ChecklistRoundedIcon, show: isMember },
-  { label: 'Groups', to: '/groups', icon: Diversity3RoundedIcon, show: isMember },
-  { label: 'Manage Assignments', to: '/manage/assignments', icon: LibraryAddRoundedIcon, show: canManageAnyAssignment },
-  { label: 'Courses & Semester', to: '/manage/semester', icon: CalendarMonthRoundedIcon, show: (u) => can(u, 'course:manage') || can(u, 'semester:manage') || can(u, 'group:manage') },
-  { label: 'Manage Users', to: '/manage/users', icon: GroupRoundedIcon, show: (u) => can(u, 'user:manage') },
-  { label: 'Roles & Permissions', to: '/manage/roles', icon: AdminPanelSettingsRoundedIcon, show: (u) => can(u, 'role:manage') || can(u, 'role:manage:global') },
+  { labelKey: 'nav.items.organizations', to: '/organizations', icon: CorporateFareRoundedIcon, show: (u) => u?.role === 'owner' },
+  { labelKey: 'nav.items.dashboard', to: '/dashboard', icon: SpaceDashboardRoundedIcon, show: isMember },
+  { labelKey: 'nav.items.announcements', to: '/announcements', icon: CampaignRoundedIcon, show: isMember },
+  { labelKey: 'nav.items.deadlines', to: '/deadlines', icon: EventNoteRoundedIcon, show: isMember },
+  { labelKey: 'nav.items.todos', to: '/todos', icon: ChecklistRoundedIcon, show: isMember },
+  { labelKey: 'nav.items.groups', to: '/groups', icon: Diversity3RoundedIcon, show: isMember },
+  { labelKey: 'nav.items.manageAssignments', to: '/manage/assignments', icon: LibraryAddRoundedIcon, show: canManageAnyAssignment },
+  { labelKey: 'nav.items.semester', to: '/manage/semester', icon: CalendarMonthRoundedIcon, show: (u) => can(u, 'course:manage') || can(u, 'semester:manage') || can(u, 'group:manage') },
+  { labelKey: 'nav.items.users', to: '/manage/users', icon: GroupRoundedIcon, show: (u) => can(u, 'user:manage') },
+  { labelKey: 'nav.items.roles', to: '/manage/roles', icon: AdminPanelSettingsRoundedIcon, show: (u) => can(u, 'role:manage') || can(u, 'role:manage:global') },
 ];
 
 export default function AppLayout() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -79,21 +83,21 @@ export default function AppLayout() {
   const drawer = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Toolbar sx={{ gap: 1.5, px: 2.5 }}>
-        <Avatar variant="rounded" sx={{ background: brandGradient }}>
-          <SchoolRoundedIcon />
-        </Avatar>
+          <img style={{ width: '50px', objectFit: 'contain' }} src={glim} alt="GLIM logo" />
+          
+        
         <Box>
           <Typography variant="subtitle1" lineHeight={1.1}>
-            GLIM
+            {t('nav.brandTitle')}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            BSchool Portal
+            {t('nav.brandSubtitle')}
           </Typography>
         </Box>
       </Toolbar>
       <Divider />
       <List sx={{ px: 1.5, py: 1, flexGrow: 1 }}>
-        {items.map(({ label, to, icon: Icon }) => {
+        {items.map(({ labelKey, to, icon: Icon }) => {
           const active = location.pathname === to || location.pathname.startsWith(`${to}/`);
           return (
             <ListItemButton
@@ -112,7 +116,7 @@ export default function AppLayout() {
               <ListItemIcon sx={{ minWidth: 40 }}>
                 <Icon />
               </ListItemIcon>
-              <ListItemText primaryTypographyProps={{ fontWeight: 600 }}>{label}</ListItemText>
+              <ListItemText primaryTypographyProps={{ fontWeight: 600 }}>{t(labelKey)}</ListItemText>
             </ListItemButton>
           );
         })}
@@ -147,19 +151,24 @@ export default function AppLayout() {
             edge="start"
             onClick={() => setMobileOpen(true)}
             sx={{ mr: 1, display: { md: 'none' } }}
-            aria-label="open navigation"
+            aria-label={t('nav.openNavAria')}
             data-testid="open-nav-button"
           >
             <MenuRoundedIcon />
           </IconButton>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            {NAV.find((n) => location.pathname.startsWith(n.to))?.label ||
-              (location.pathname.startsWith('/change-password') ? 'Change password' : 'GLIM')}
+            {(() => {
+              const item = NAV.find((n) => location.pathname.startsWith(n.to));
+              if (item) return t(item.labelKey);
+              return location.pathname.startsWith('/change-password')
+                ? t('nav.changePasswordTitle')
+                : t('common.appName');
+            })()}
           </Typography>
           <EnvBadge />
           <Box sx={{ mx: 0.5 }} />
           <ThemeToggle />
-          <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} aria-label="account menu" sx={{ ml: 0.5 }} data-testid="account-menu-button">
+          <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} aria-label={t('nav.accountMenuAria')} sx={{ ml: 0.5 }} data-testid="account-menu-button">
             <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main' }}>
               {initials(user?.name)}
             </Avatar>
@@ -186,19 +195,19 @@ export default function AppLayout() {
               <ListItemIcon>
                 <AccountCircleRoundedIcon fontSize="small" />
               </ListItemIcon>
-              My profile
+              {t('account.profile')}
             </MenuItem>
             <MenuItem component={RouterLink} to="/change-password" onClick={() => setAnchorEl(null)} data-testid="menu-change-password">
               <ListItemIcon>
                 <LockResetRoundedIcon fontSize="small" />
               </ListItemIcon>
-              Change password
+              {t('account.changePassword')}
             </MenuItem>
             <MenuItem component={RouterLink} to="/feedback" onClick={() => setAnchorEl(null)} data-testid="menu-feedback">
               <ListItemIcon>
                 <RateReviewRoundedIcon fontSize="small" />
               </ListItemIcon>
-              Feedback
+              {t('account.feedback')}
             </MenuItem>
             <MenuItem
               data-testid="menu-logout"
@@ -210,7 +219,7 @@ export default function AppLayout() {
               <ListItemIcon>
                 <LogoutRoundedIcon fontSize="small" />
               </ListItemIcon>
-              Sign out
+              {t('account.signOut')}
             </MenuItem>
           </Menu>
         </Toolbar>
