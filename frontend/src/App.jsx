@@ -13,6 +13,7 @@ import Loading from './components/Loading.jsx';
 const LoginPage = lazy(() => import('./pages/LoginPage.jsx'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage.jsx'));
 const DeadlinesPage = lazy(() => import('./pages/DeadlinesPage.jsx'));
+const AnnouncementsPage = lazy(() => import('./pages/AnnouncementsPage.jsx'));
 const TodosPage = lazy(() => import('./pages/TodosPage.jsx'));
 const ChangePasswordPage = lazy(() => import('./pages/ChangePasswordPage.jsx'));
 const ManageAssignmentsPage = lazy(() => import('./pages/manage/ManageAssignmentsPage.jsx'));
@@ -65,6 +66,14 @@ export default function App() {
             element={
               <RoleRoute roles={STUDENT_STAFF}>
                 <DashboardPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/announcements"
+            element={
+              <RoleRoute roles={STUDENT_STAFF}>
+                <AnnouncementsPage />
               </RoleRoute>
             }
           />

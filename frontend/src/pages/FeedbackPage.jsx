@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   CardContent,
+  Checkbox,
   Divider,
   MenuItem,
   Rating,
@@ -14,7 +15,6 @@ import {
   Typography,
 } from '@mui/material';
 import StarRoundedIcon from '@mui/icons-material/StarRounded';
-import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import { FLOATING_SELECT } from '../constants/ui.js';
 import { useSubmitFeedback } from '../queries/hooks.js';
@@ -22,17 +22,166 @@ import { homePathFor } from '../components/RouteGuards.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 
-// Areas of the product the user can flag as most useful to them.
+// ── Survey options ───────────────────────────────────────────────────────────
+const TOOL_OPTIONS = [
+  'Spreadsheets (Excel / Sheets)',
+  'Email',
+  'WhatsApp / chat groups',
+  'Calendar app',
+  'Notes / sticky notes',
+  'Just my memory',
+  'Other',
+];
+const SLIP_REASONS = [
+  'Too many scattered tools',
+  'No single view of everything',
+  'Forgot / weak reminders',
+  'Group coordination gaps',
+  'Last-minute pile-ups',
+  'Other',
+];
+const FREQUENCY = [
+  ['never', 'Never'],
+  ['rarely', 'Rarely'],
+  ['sometimes', 'Sometimes'],
+  ['often', 'Often'],
+  ['veryOften', 'Very often'],
+];
+const COMPLEXITY = [
+  [1, '1 — Very simple'],
+  [2, '2 — Simple'],
+  [3, '3 — Moderate'],
+  [4, '4 — Complex'],
+  [5, '5 — Very complex'],
+];
+const AGREEMENT = [
+  [1, 'Strongly disagree'],
+  [2, 'Disagree'],
+  [3, 'Neutral'],
+  [4, 'Agree'],
+  [5, 'Strongly agree'],
+];
+const EASIER = [
+  ['muchHarder', 'Much harder'],
+  ['harder', 'Somewhat harder'],
+  ['same', 'About the same'],
+  ['easier', 'Somewhat easier'],
+  ['muchEasier', 'Much easier'],
+];
+const VALUE = [
+  [1, 'No value'],
+  [2, 'A little value'],
+  [3, 'Some value'],
+  [4, 'Good value'],
+  [5, 'High value'],
+];
+const LIKELIHOOD = [
+  [1, 'Very unlikely'],
+  [2, 'Unlikely'],
+  [3, 'Maybe'],
+  [4, 'Likely'],
+  [5, 'Very likely'],
+];
+const RECOMMEND = Array.from({ length: 11 }, (_, i) => [i, String(i)]);
 const FEATURES = [
   'Deadlines & assignments',
   'My To-Do board',
   'Groups & collaboration',
-  'Managing users & roles',
+  'Announcements',
   'Semesters & courses',
   'Other',
 ];
 
-// One labelled 1–5 star row, used for each rated aspect.
+const initialForm = () => ({
+  // A — the problem
+  currentTools: [],
+  planningComplexity: '',
+  missFrequency: '',
+  slipReasons: [],
+  problemAgreement: '',
+  // B — does TaskPlanner solve it
+  rating: 0,
+  easeOfUse: 0,
+  performance: 0,
+  design: 0,
+  helpsAgreement: '',
+  easierThanBefore: '',
+  mostUsed: '',
+  // C — interest & value
+  valueToMba: '',
+  usageIntent: '',
+  recommend: '',
+  // optional
+  suggestions: '',
+});
+
+function SectionHeading({ children, hint }) {
+  return (
+    <Box>
+      <Typography variant="overline" color="primary" sx={{ fontWeight: 700, letterSpacing: '0.08em' }}>
+        {children}
+      </Typography>
+      {hint && (
+        <Typography variant="body2" color="text.secondary">
+          {hint}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
+// A single labelled question with a dropdown of choices.
+function ChoiceField({ label, value, onChange, options, helperText, required, testId }) {
+  return (
+    <TextField
+      select
+      fullWidth
+      required={required}
+      label={label}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      {...FLOATING_SELECT}
+      helperText={helperText}
+      inputProps={{ 'data-testid': testId }}
+    >
+      {options.map(([v, l]) => (
+        <MenuItem key={v} value={v}>
+          {l}
+        </MenuItem>
+      ))}
+    </TextField>
+  );
+}
+
+// A "select all that apply" multi-choice question.
+function MultiField({ label, value, onChange, options, helperText, testId }) {
+  return (
+    <TextField
+      select
+      fullWidth
+      label={label}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      {...FLOATING_SELECT}
+      SelectProps={{
+        multiple: true,
+        displayEmpty: true,
+        renderValue: (sel) => (sel.length ? sel.join(', ') : 'Select all that apply'),
+      }}
+      helperText={helperText}
+      inputProps={{ 'data-testid': testId }}
+    >
+      {options.map((o) => (
+        <MenuItem key={o} value={o}>
+          <Checkbox checked={value.includes(o)} />
+          {o}
+        </MenuItem>
+      ))}
+    </TextField>
+  );
+}
+
+// A labelled 1–5 star row, used for each rated aspect of TaskPlanner.
 function RatingRow({ label, hint, value, onChange, testId }) {
   return (
     <Stack
@@ -52,7 +201,7 @@ function RatingRow({ label, hint, value, onChange, testId }) {
       <Box data-testid={testId} sx={{ flexShrink: 0 }}>
         <Rating
           value={value}
-          onChange={(_, v) => onChange(v)}
+          onChange={(_, v) => onChange(v || 0)}
           icon={<StarRoundedIcon fontSize="inherit" />}
           emptyIcon={<StarRoundedIcon fontSize="inherit" />}
           size="large"
@@ -67,32 +216,40 @@ export default function FeedbackPage() {
   const navigate = useNavigate();
   const submit = useSubmitFeedback();
 
-  const [rating, setRating] = useState(0); // overall — required
-  const [easeOfUse, setEaseOfUse] = useState(0);
-  const [performance, setPerformance] = useState(0);
-  const [design, setDesign] = useState(0);
-  const [recommend, setRecommend] = useState('');
-  const [mostUsed, setMostUsed] = useState('');
-  const [suggestions, setSuggestions] = useState('');
+  const [form, setForm] = useState(initialForm());
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+  const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!rating) {
-      setError('Please give an overall rating before submitting.');
+    if (!form.rating) {
+      setError('Please give TaskPlanner an overall rating before submitting.');
       return;
     }
     setError('');
+    const num = (v) => (v === '' ? undefined : Number(v));
     try {
       await submit.mutateAsync({
-        rating,
-        easeOfUse: easeOfUse || undefined,
-        performance: performance || undefined,
-        design: design || undefined,
-        recommend: recommend === '' ? undefined : Number(recommend),
-        mostUsed,
-        suggestions: suggestions.trim(),
+        // A — the problem
+        currentTools: form.currentTools,
+        planningComplexity: num(form.planningComplexity),
+        missFrequency: form.missFrequency || undefined,
+        slipReasons: form.slipReasons,
+        problemAgreement: num(form.problemAgreement),
+        // B — solution
+        rating: form.rating,
+        easeOfUse: form.easeOfUse || undefined,
+        performance: form.performance || undefined,
+        design: form.design || undefined,
+        helpsAgreement: num(form.helpsAgreement),
+        easierThanBefore: form.easierThanBefore || undefined,
+        mostUsed: form.mostUsed || undefined,
+        // C — value
+        valueToMba: num(form.valueToMba),
+        usageIntent: num(form.usageIntent),
+        recommend: num(form.recommend),
+        suggestions: form.suggestions.trim(),
       });
       setDone(true);
     } catch (err) {
@@ -102,7 +259,7 @@ export default function FeedbackPage() {
 
   if (done) {
     return (
-      <Box sx={{ maxWidth: 640 }}>
+      <Box sx={{ maxWidth: 680 }}>
         <Card>
           <CardContent sx={{ p: { xs: 3, sm: 5 }, textAlign: 'center' }}>
             <CheckCircleRoundedIcon color="success" sx={{ fontSize: 56, mb: 1 }} />
@@ -110,7 +267,7 @@ export default function FeedbackPage() {
               Thank you{user?.name ? `, ${user.name.split(' ')[0]}` : ''}!
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Your feedback has been recorded. It helps us make GLIM better for everyone.
+              Your responses have been recorded. They directly shape how TaskPlanner evolves.
             </Typography>
             <Button variant="contained" onClick={() => navigate(homePathFor(user.role))} data-testid="feedback-done">
               Back to dashboard
@@ -122,10 +279,10 @@ export default function FeedbackPage() {
   }
 
   return (
-    <Box sx={{ maxWidth: 640 }}>
+    <Box sx={{ maxWidth: 680 }}>
       <PageHeader
-        title="Share your feedback"
-        subtitle="Tell us how GLIM is working for you. It only takes a minute and helps shape what we build next."
+        title="Help shape TaskPlanner"
+        subtitle="A 2-minute survey about how you plan your academic work — and whether TaskPlanner makes it easier. Your honest answers guide what we build next."
       />
 
       <Card>
@@ -138,18 +295,66 @@ export default function FeedbackPage() {
 
           <Box component="form" onSubmit={handleSubmit} noValidate data-testid="feedback-form">
             <Stack spacing={3}>
-              {/* Required overall rating */}
+              {/* ── Section A — the problem ──────────────────────────────── */}
+              <SectionHeading hint="First, how you manage your academic workload today.">
+                Planning your academic life
+              </SectionHeading>
+
+              <MultiField
+                label="How do you currently keep track of your academic tasks?"
+                value={form.currentTools}
+                onChange={set('currentTools')}
+                options={TOOL_OPTIONS}
+                testId="feedback-tools"
+              />
+              <ChoiceField
+                label="How complex do you find planning and tracking your academic workload?"
+                value={form.planningComplexity}
+                onChange={set('planningComplexity')}
+                options={COMPLEXITY}
+                testId="feedback-complexity"
+              />
+              <ChoiceField
+                label="How often do you miss — or nearly miss — a deadline, submission or group commitment?"
+                value={form.missFrequency}
+                onChange={set('missFrequency')}
+                options={FREQUENCY}
+                testId="feedback-miss"
+              />
+              <MultiField
+                label="When tasks slip through the cracks, what's usually the cause?"
+                value={form.slipReasons}
+                onChange={set('slipReasons')}
+                options={SLIP_REASONS}
+                testId="feedback-slip"
+              />
+              <ChoiceField
+                label="“Planning my academic tasks is complex, and important things often get missed.”"
+                value={form.problemAgreement}
+                onChange={set('problemAgreement')}
+                options={AGREEMENT}
+                helperText="How much do you agree?"
+                testId="feedback-problem-agree"
+              />
+
+              <Divider />
+
+              {/* ── Section B — does TaskPlanner solve it ────────────────── */}
+              <SectionHeading hint="Now, your experience using TaskPlanner.">
+                Your experience with TaskPlanner
+              </SectionHeading>
+
               <Box>
                 <Typography fontWeight={600}>
-                  Overall, how satisfied are you with GLIM?{' '}
+                  Overall, how satisfied are you with TaskPlanner?{' '}
                   <Typography component="span" color="error.main">
                     *
                   </Typography>
                 </Typography>
                 <Box data-testid="feedback-rating" sx={{ mt: 0.5 }}>
                   <Rating
-                    value={rating}
-                    onChange={(_, v) => setRating(v || 0)}
+                    value={form.rating}
+                    onChange={(_, v) => set('rating')(v || 0)}
                     icon={<StarRoundedIcon fontSize="inherit" />}
                     emptyIcon={<StarRoundedIcon fontSize="inherit" />}
                     size="large"
@@ -158,85 +363,93 @@ export default function FeedbackPage() {
                 </Box>
               </Box>
 
-              <Divider />
-
-              {/* Per-aspect ratings */}
               <RatingRow
                 label="Ease of use"
                 hint="How easy is it to find your way around?"
-                value={easeOfUse}
-                onChange={(v) => setEaseOfUse(v || 0)}
+                value={form.easeOfUse}
+                onChange={set('easeOfUse')}
                 testId="feedback-ease"
               />
               <RatingRow
                 label="Performance & speed"
-                hint="Does the app feel fast and responsive?"
-                value={performance}
-                onChange={(v) => setPerformance(v || 0)}
+                hint="Does it feel fast and responsive?"
+                value={form.performance}
+                onChange={set('performance')}
                 testId="feedback-performance"
               />
               <RatingRow
                 label="Design & usability"
                 hint="Is the interface clear and pleasant to use?"
-                value={design}
-                onChange={(v) => setDesign(v || 0)}
+                value={form.design}
+                onChange={set('design')}
                 testId="feedback-design"
+              />
+              <ChoiceField
+                label="“TaskPlanner helps me stay on top of my deadlines and reduces the chance of missing tasks.”"
+                value={form.helpsAgreement}
+                onChange={set('helpsAgreement')}
+                options={AGREEMENT}
+                helperText="How much do you agree?"
+                testId="feedback-helps-agree"
+              />
+              <ChoiceField
+                label="Compared with how you managed before, TaskPlanner makes staying organized…"
+                value={form.easierThanBefore}
+                onChange={set('easierThanBefore')}
+                options={EASIER}
+                testId="feedback-easier"
+              />
+              <ChoiceField
+                label="Which part of TaskPlanner is most useful to you?"
+                value={form.mostUsed}
+                onChange={set('mostUsed')}
+                options={[['', '— No preference —'], ...FEATURES.map((f) => [f, f])]}
+                testId="feedback-most-used"
               />
 
               <Divider />
 
-              {/* Likelihood to recommend (NPS-style 0–10) */}
-              <TextField
-                select
-                fullWidth
-                label="How likely are you to recommend GLIM to a classmate?"
-                value={recommend}
-                onChange={(e) => setRecommend(e.target.value)}
-                {...FLOATING_SELECT}
-                helperText="0 = not at all likely, 10 = extremely likely"
-                inputProps={{ 'data-testid': 'feedback-recommend' }}
-                InputProps={{
-                  startAdornment: <FavoriteRoundedIcon color="error" fontSize="small" sx={{ mr: 1 }} />,
-                }}
-              >
-                {Array.from({ length: 11 }, (_, i) => (
-                  <MenuItem key={i} value={i}>
-                    {i}
-                  </MenuItem>
-                ))}
-              </TextField>
+              {/* ── Section C — interest & value ─────────────────────────── */}
+              <SectionHeading hint="Finally, what TaskPlanner means for your MBA.">
+                Value to your MBA journey
+              </SectionHeading>
 
-              {/* Which feature is most useful */}
-              <TextField
-                select
-                fullWidth
-                label="Which part of GLIM do you find most useful?"
-                value={mostUsed}
-                onChange={(e) => setMostUsed(e.target.value)}
-                {...FLOATING_SELECT}
-                inputProps={{ 'data-testid': 'feedback-most-used' }}
-              >
-                <MenuItem value="">— No preference —</MenuItem>
-                {FEATURES.map((f) => (
-                  <MenuItem key={f} value={f}>
-                    {f}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <ChoiceField
+                label="How much value would TaskPlanner add to your MBA journey?"
+                value={form.valueToMba}
+                onChange={set('valueToMba')}
+                options={VALUE}
+                testId="feedback-value"
+              />
+              <ChoiceField
+                label="How likely are you to use TaskPlanner regularly through your program?"
+                value={form.usageIntent}
+                onChange={set('usageIntent')}
+                options={LIKELIHOOD}
+                testId="feedback-usage"
+              />
+              <ChoiceField
+                label="How likely are you to recommend TaskPlanner to a classmate?"
+                value={form.recommend}
+                onChange={set('recommend')}
+                options={RECOMMEND}
+                helperText="0 = not at all likely, 10 = extremely likely"
+                testId="feedback-recommend"
+              />
 
               <Divider />
 
               {/* Optional last block — free-text suggestions */}
               <TextField
-                label="Suggestions or anything else? (optional)"
-                placeholder="Tell us what you'd love to see, or what's getting in your way…"
+                label="Anything else you'd like to see in TaskPlanner? (optional)"
+                placeholder="What would make TaskPlanner indispensable for you, or what's getting in your way…"
                 fullWidth
                 multiline
-                minRows={4}
-                value={suggestions}
-                onChange={(e) => setSuggestions(e.target.value)}
+                minRows={3}
+                value={form.suggestions}
+                onChange={(e) => set('suggestions')(e.target.value)}
                 inputProps={{ maxLength: 2000, 'data-testid': 'feedback-suggestions' }}
-                helperText={`${suggestions.length}/2000`}
+                helperText={`${form.suggestions.length}/2000`}
               />
 
               <Button

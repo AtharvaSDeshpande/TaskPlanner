@@ -1,0 +1,148 @@
+{
+  "common": {
+    "appName": "GLIM",
+    "loading": "Loading…",
+    "none": "None",
+    "actions": {
+      "save": "Save",
+      "saveChanges": "Save changes",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "delete": "Delete",
+      "edit": "Edit",
+      "add": "Add",
+      "create": "Create",
+      "close": "Close",
+      "remove": "Remove",
+      "viewAll": "View all"
+    },
+    "labels": {
+      "areYouSure": "Are you sure?"
+    }
+  },
+  "env": {
+    "dev": "DEV",
+    "prod": "PROD",
+    "tooltip": "Environment: {{env}} · API: {{api}}"
+  },
+  "theme": {
+    "toLight": "Switch to light mode",
+    "toDark": "Switch to dark mode",
+    "toggleAria": "toggle color mode"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "body": "An unexpected error occurred while rendering this page. Reloading usually fixes it.",
+    "reload": "Reload the app"
+  },
+  "deadlineChip": {
+    "due": "Due {{date}}"
+  },
+  "nav": {
+    "brandTitle": "Task Planner",
+    "brandSubtitle": "GLIM, Chennai",
+    "openNavAria": "open navigation",
+    "accountMenuAria": "account menu",
+    "items": {
+      "organizations": "Organizations",
+      "dashboard": "Dashboard",
+      "announcements": "Announcements",
+      "deadlines": "Deadlines",
+      "todos": "My To-Do Board",
+      "groups": "Groups",
+      "manageAssignments": "Manage Assignments",
+      "semester": "Courses & Semester",
+      "users": "Manage Users",
+      "roles": "Roles & Permissions"
+    },
+    "changePasswordTitle": "Change password"
+  },
+  "account": {
+    "profile": "My profile",
+    "changePassword": "Change password",
+    "feedback": "Feedback",
+    "signOut": "Sign out"
+  },
+  "auth": {
+    "brandName": "Great Lakes Institute of Management, Chennai",
+    "heroTitle": "Stay ahead of every deadline.",
+    "heroSubtitle": "The student portal for assignments, submissions and a private, encrypted to-do list.",
+    "features": [
+      { "title": "Deadlines at a glance", "text": "Track every assignment and submission in one place." },
+      { "title": "Email reminders", "text": "Get nudged before a deadline slips past you." },
+      { "title": "Encrypted to-dos", "text": "Your personal task board is encrypted and private to your account." }
+    ],
+    "welcomeBack": "Welcome back",
+    "signInPrompt": "Sign in with your official college email and the password sent to you.",
+    "emailLabel": "College email",
+    "emailPlaceholder": "you@bschool.edu",
+    "passwordLabel": "Password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…"
+  },
+  "dashboard": {
+    "greetings": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "greetingLine": "{{greeting}}, {{name}} 👋",
+    "subtitle": "Here's what needs your attention.",
+    "stats": {
+      "upcoming": "Upcoming deadlines",
+      "dueThisWeek": "Due this week",
+      "students": "Students",
+      "yourProgram": "Your program",
+      "overdue": "Overdue"
+    },
+    "quickActions": {
+      "title": "Quick actions",
+      "postAssignment": "Post an assignment",
+      "manageUsers": "Manage users"
+    },
+    "upcomingCard": {
+      "title": "Upcoming deadlines",
+      "emptyTitle": "Nothing due — you're all caught up!",
+      "emptyDescription": "New assignments will appear here as they're posted."
+    },
+    "missedCard": {
+      "title": "Missed deadlines",
+      "emptyTitle": "No missed deadlines — nice work!",
+      "emptyDescription": "Past-due assignments you haven't completed will show up here."
+    },
+    "announcementsCard": {
+      "title": "Announcements",
+      "emptyTitle": "No announcements yet",
+      "emptyDescription": "Updates from your staff will appear here.",
+      "by": "by {{name}}"
+    }
+  },
+  "announcements": {
+    "title": "Announcements",
+    "subtitle": "News, reminders and upcoming dates for your organization.",
+    "new": "New announcement",
+    "emptyTitle": "No announcements yet",
+    "emptyDescriptionCanPost": "Post the first announcement to keep everyone in the loop.",
+    "emptyDescriptionViewer": "Announcements from your staff will appear here.",
+    "typeInfo": "Info",
+    "typeDate": "Date",
+    "postedBy": "Posted by {{name}}",
+    "posted": "Posted",
+    "dialogTitle": "New announcement",
+    "titleLabel": "Title",
+    "messageLabel": "Message",
+    "subjectLabel": "Subject (optional)",
+    "subjectGeneral": "General — no subject",
+    "subjectHelpHasCourses": "Tag a course this announcement relates to, or leave as General.",
+    "subjectHelpNoCourses": "No courses in the current semester yet.",
+    "dateLabel": "Date / deadline (optional)",
+    "dateHelp": "Leave empty for a purely informative announcement.",
+    "post": "Post announcement",
+    "posting": "Posting…",
+    "deleteTitle": "Delete announcement?",
+    "deleteMessage": "This permanently removes \"{{title}}\".",
+    "errorTitleRequired": "A title is required.",
+    "errorMessageRequired": "A message is required."
+  }
+}

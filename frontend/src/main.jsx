@@ -9,6 +9,7 @@ import { AuthProvider } from './context/AuthContext.jsx';
 import { queryClient } from './queries/queryClient.js';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { initLogger } from './logger/logger.jsx';
+import './i18n/index.js'; // initialize i18next before anything renders
 import App from './App.jsx';
 
 // Wire up structured logging (console + batched ship to the backend session
@@ -21,7 +22,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <BrowserRouter>
+            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <AuthProvider>
                 <App />
               </AuthProvider>

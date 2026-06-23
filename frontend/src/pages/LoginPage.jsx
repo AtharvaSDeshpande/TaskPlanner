@@ -15,23 +15,22 @@ import {
 } from '@mui/material';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
+import glim from "../../assets/glim.webp"
 import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import NotificationsActiveRoundedIcon from '@mui/icons-material/NotificationsActiveRounded';
 import { useAuth } from '../context/AuthContext.jsx';
 import ThemeToggle from '../components/ThemeToggle.jsx';
 import EnvBadge from '../components/EnvBadge.jsx';
+import { useTranslation } from 'react-i18next';
 import { homePathFor } from '../components/RouteGuards.jsx';
 import { brandGradient } from '../theme.js';
 
-const FEATURES = [
-  { icon: EventNoteRoundedIcon, title: 'Deadlines at a glance', text: 'Track every assignment and submission in one place.' },
-  { icon: NotificationsActiveRoundedIcon, title: 'Email reminders', text: 'Get nudged before a deadline slips past you.' },
-  { icon: LockRoundedIcon, title: 'Encrypted to-dos', text: 'Your personal task board is encrypted and private to your account.' },
-];
+// Icons only; the title/text strings live in i18n under auth.features[i].
+const FEATURE_ICONS = [EventNoteRoundedIcon, NotificationsActiveRoundedIcon, LockRoundedIcon];
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -79,27 +78,27 @@ export default function LoginPage() {
         }}
       >
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 4 }}>
-          <SchoolRoundedIcon sx={{ fontSize: 40 }} />
-          <Typography variant="h4" fontWeight={700}>
-            GLIM
+          <img style={{ width: '50px', objectFit: 'contain' }} src={glim} alt="GLIM logo" />
+          <Typography variant="h5" fontWeight={700}>
+            {t('auth.brandName')}
           </Typography>
         </Stack>
-        <Typography variant="h3" fontWeight={700} sx={{ mb: 2, lineHeight: 1.15 }}>
-          Stay ahead of every deadline.
+        <Typography variant="h5" fontWeight={700} sx={{ mb: 2, lineHeight: 1.15 }}>
+          {t('auth.heroTitle')}
         </Typography>
         <Typography variant="h6" fontWeight={400} sx={{ opacity: 0.9, mb: 5 }}>
-          The student portal for assignments, submissions and a private, encrypted to-do list.
+          {t('auth.heroSubtitle')}
         </Typography>
         <Stack spacing={3}>
-          {FEATURES.map(({ icon: Icon, title, text }) => (
-            <Stack key={title} direction="row" spacing={2} alignItems="flex-start">
+          {FEATURE_ICONS.map((Icon, i) => (
+            <Stack key={i} direction="row" spacing={2} alignItems="flex-start">
               <Box sx={{ bgcolor: 'rgba(255,255,255,0.18)', borderRadius: 2, p: 1.2, display: 'flex' }}>
                 <Icon />
               </Box>
               <Box>
-                <Typography fontWeight={600}>{title}</Typography>
+                <Typography fontWeight={600}>{t(`auth.features.${i}.title`)}</Typography>
                 <Typography variant="body2" sx={{ opacity: 0.85 }}>
-                  {text}
+                  {t(`auth.features.${i}.text`)}
                 </Typography>
               </Box>
             </Stack>
@@ -117,14 +116,14 @@ export default function LoginPage() {
         <Card sx={{ width: '100%', maxWidth: 420 }}>
           <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1, display: { md: 'none' } }}>
-              <SchoolRoundedIcon color="primary" />
-              <Typography variant="h6">GLIM</Typography>
+              <img style={{ width: '50px', objectFit: 'contain' }} src={glim} alt="GLIM logo" />
+              <Typography variant="h6">{t('common.appName')}</Typography>
             </Stack>
             <Typography variant="h5" gutterBottom>
-              Welcome back
+              {t('auth.welcomeBack')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Sign in with your official college email and the password sent to you.
+              {t('auth.signInPrompt')}
             </Typography>
 
             {error && (
@@ -136,7 +135,7 @@ export default function LoginPage() {
             <Box component="form" onSubmit={handleSubmit} noValidate data-testid="login-form">
               <Stack spacing={2.5}>
                 <TextField
-                  label="College email"
+                  label={t('auth.emailLabel')}
                   type="email"
                   fullWidth
                   required
@@ -144,11 +143,11 @@ export default function LoginPage() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@bschool.edu"
+                  placeholder={t('auth.emailPlaceholder')}
                   inputProps={{ 'data-testid': 'login-email' }}
                 />
                 <TextField
-                  label="Password"
+                  label={t('auth.passwordLabel')}
                   type={showPw ? 'text' : 'password'}
                   fullWidth
                   required
@@ -167,7 +166,7 @@ export default function LoginPage() {
                   }}
                 />
                 <Button type="submit" variant="contained" size="large" fullWidth disabled={submitting} data-testid="login-submit">
-                  {submitting ? 'Signing in…' : 'Sign in'}
+                  {submitting ? t('auth.signingIn') : t('auth.signIn')}
                 </Button>
               </Stack>
             </Box>
