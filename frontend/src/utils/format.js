@@ -3,6 +3,9 @@ import { format, formatDistanceToNowStrict, isPast, differenceInHours } from 'da
 export const formatDateTime = (d) => format(new Date(d), 'd MMM yyyy, h:mm a');
 export const formatDate = (d) => format(new Date(d), 'd MMM yyyy');
 
+// Formats a date for a native <input type="date"> (yyyy-MM-dd); '' when empty.
+export const toDateInputValue = (d) => (d ? format(new Date(d), 'yyyy-MM-dd') : '');
+
 // Returns a relative label, a MUI colour, and urgency flags for a deadline.
 //   urgent → overdue or due within 24h   (flagged in red)
 //   soon   → due within 72h               (warning)

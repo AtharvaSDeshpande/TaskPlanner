@@ -302,10 +302,15 @@ roles/permissions, semesters, and subject-level (course) moderation.
   creates platform roles; admins create org roles.
 - **`semesters`** — a term. `{ organization, name, isActive, startedAt, endedAt,
   createdBy }`. Exactly one `isActive` per org; starting a new one archives the
-  previous (nothing deleted).
+  previous (nothing deleted). `PATCH /semesters/:id` edits the name and date range
+  (`startedAt`/`endedAt`) only — activation stays manual via `POST /semesters/start`.
 - **`courses`** — a subject in a term. `{ organization, semester, code, title,
-  program, moderators: [→ users], createdBy }`. Unique `{semester, code}`. A user
-  in `moderators` may author assignments **for that course only**.
+  program, credits, hours, sections, proposedFaculty, juniorFaculty,
+  moderators: [→ users], createdBy }`. Unique `{semester, code}`. A user in
+  `moderators` may author assignments **for that course only**. `credits`/`hours`/
+  `sections` are non-negative numbers; faculty fields are free text. Courses can be
+  imported in bulk via `POST /courses/bulk` (parsed from the admin's spreadsheet
+  client-side, same pattern as `POST /users/bulk`).
 
 ### Changed documents
 
