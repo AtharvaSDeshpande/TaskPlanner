@@ -27,6 +27,7 @@ import {
   Typography,
 } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import GroupAddRoundedIcon from '@mui/icons-material/GroupAddRounded';
@@ -36,6 +37,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import {
   useActiveSemester,
   useStartSemester,
+  useUpdateSemester,
   useCourses,
   useSaveCourse,
   useSetCourseModerators,
@@ -45,12 +47,22 @@ import {
 } from '../../queries/hooks.js';
 import { PROGRAMS, SECTIONS, sectionLabel } from '../../constants/academics.js';
 import { FLOATING_SELECT } from '../../constants/ui.js';
-import { formatDate, initials } from '../../utils/format.js';
+import { formatDate, toDateInputValue, initials } from '../../utils/format.js';
 import PageHeader from '../../components/PageHeader.jsx';
 import Loading from '../../components/Loading.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
+import BulkAddCoursesDialog from '../../components/BulkAddCoursesDialog.jsx';
 
-const emptyCourse = () => ({ code: '', title: '', program: '' });
+const emptyCourse = () => ({
+  code: '',
+  title: '',
+  program: '',
+  credits: '',
+  hours: '',
+  sections: '',
+  proposedFaculty: '',
+  juniorFaculty: '',
+});
 
 export default function SemesterPage() {
   const { can } = useAuth();
@@ -60,6 +72,7 @@ export default function SemesterPage() {
   const orgUsers = usersData?.users || [];
 
   const startSemester = useStartSemester();
+  const updateSemester = useUpdateSemester();
   const saveCourse = useSaveCourse();
   const setModerators = useSetCourseModerators();
   const deleteCourse = useDeleteCourse();
@@ -72,10 +85,17 @@ export default function SemesterPage() {
   const [startOpen, setStartOpen] = useState(false);
   const [startDraft, setStartDraft] = useState({ name: '', password: '' });
 
+  // Edit semester dates dialog
+  const [datesOpen, setDatesOpen] = useState(false);
+  const [datesDraft, setDatesDraft] = useState({ startedAt: '', endedAt: '' });
+
   // Course add/edit dialog
   const [courseOpen, setCourseOpen] = useState(false);
   const [courseDraft, setCourseDraft] = useState(emptyCourse());
   const [editingCourseId, setEditingCourseId] = useState(null);
+
+  // Bulk-add courses dialog
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   // Moderators dialog
   const [modCourse, setModCourse] = useState(null);
@@ -106,6 +126,33 @@ export default function SemesterPage() {
     }
   };
 
+  // ── Edit semester dates ──
+  const openDates = () => {
+    setDatesDraft({
+      startedAt: toDateInputValue(semester?.startedAt),
+      endedAt: toDateInputValue(semester?.endedAt),
+    });
+    setError('');
+    setDatesOpen(true);
+  };
+  const submitDates = async () => {
+    if (!datesDraft.startedAt) {
+      setError('A start date is required.');
+      return;
+    }
+    setError('');
+    try {
+      await updateSemester.mutateAsync({
+        id: semester.id,
+        body: { startedAt: datesDraft.startedAt, endedAt: datesDraft.endedAt || '' },
+      });
+      setDatesOpen(false);
+      setNotice('Semester dates updated.');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   // ── Courses ──
   const openCreateCourse = () => {
     setCourseDraft(emptyCourse());
@@ -114,7 +161,16 @@ export default function SemesterPage() {
     setCourseOpen(true);
   };
   const openEditCourse = (c) => {
-    setCourseDraft({ code: c.code, title: c.title, program: c.program || '' });
+    setCourseDraft({
+      code: c.code,
+      title: c.title,
+      program: c.program || '',
+      credits: c.credits ?? '',
+      hours: c.hours ?? '',
+      sections: c.sections ?? '',
+      proposedFaculty: c.proposedFaculty || '',
+      juniorFaculty: c.juniorFaculty || '',
+    });
     setEditingCourseId(c.id);
     setError('');
     setCourseOpen(true);
@@ -207,7 +263,9 @@ export default function SemesterPage() {
                 <>
                   <Typography variant="h5">{semester.name}</Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Started {formatDate(semester.startedAt)}
+                    Starts {formatDate(semester.startedAt)}
+                    {' · '}
+                    {semester.endedAt ? `Ends ${formatDate(semester.endedAt)}` : 'No end date set'}
                   </Typography>
                 </>
               ) : (
@@ -216,16 +274,27 @@ export default function SemesterPage() {
                 </Typography>
               )}
               {can('semester:manage') && (
-                <Button
-                  sx={{ mt: 2 }}
-                  variant="outlined"
-                  color="warning"
-                  startIcon={<RestartAltRoundedIcon />}
-                  onClick={() => setStartOpen(true)}
-                  data-testid="start-semester-button"
-                >
-                  Start new semester
-                </Button>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 2 }}>
+                  {semester && (
+                    <Button
+                      variant="outlined"
+                      startIcon={<CalendarMonthRoundedIcon />}
+                      onClick={openDates}
+                      data-testid="edit-semester-dates-button"
+                    >
+                      Edit dates
+                    </Button>
+                  )}
+                  <Button
+                    variant="outlined"
+                    color="warning"
+                    startIcon={<RestartAltRoundedIcon />}
+                    onClick={() => setStartOpen(true)}
+                    data-testid="start-semester-button"
+                  >
+                    Start new semester
+                  </Button>
+                </Stack>
               )}
             </CardContent>
           </Card>
@@ -257,9 +326,14 @@ export default function SemesterPage() {
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 3, mb: 1.5 }}>
         <Typography variant="h6">Courses</Typography>
         {canCourses && (
-          <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openCreateCourse} disabled={!semester} data-testid="add-course-button">
-            Add course
-          </Button>
+          <Stack direction="row" spacing={1.5}>
+            <Button variant="outlined" startIcon={<UploadFileRoundedIcon />} onClick={() => setBulkOpen(true)} disabled={!semester} data-testid="bulk-add-courses-button">
+              Bulk add
+            </Button>
+            <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openCreateCourse} disabled={!semester} data-testid="add-course-button">
+              Add course
+            </Button>
+          </Stack>
         )}
       </Stack>
 
@@ -271,6 +345,10 @@ export default function SemesterPage() {
                 <TableCell>Code</TableCell>
                 <TableCell>Title</TableCell>
                 <TableCell>Program</TableCell>
+                <TableCell align="right">Credit</TableCell>
+                <TableCell align="right">Hrs</TableCell>
+                <TableCell align="right">Sec</TableCell>
+                <TableCell>Faculty</TableCell>
                 <TableCell>Moderators</TableCell>
                 {canCourses && <TableCell align="right">Actions</TableCell>}
               </TableRow>
@@ -278,7 +356,7 @@ export default function SemesterPage() {
             <TableBody>
               {courses.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={canCourses ? 5 : 4}>
+                  <TableCell colSpan={canCourses ? 9 : 8}>
                     <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
                       No courses in this semester yet.
                     </Typography>
@@ -292,6 +370,23 @@ export default function SemesterPage() {
                     </TableCell>
                     <TableCell>{c.title}</TableCell>
                     <TableCell>{c.program || '—'}</TableCell>
+                    <TableCell align="right">{c.credits || '—'}</TableCell>
+                    <TableCell align="right">{c.hours || '—'}</TableCell>
+                    <TableCell align="right">{c.sections || '—'}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'pre-line', minWidth: 160 }}>
+                      {c.proposedFaculty || c.juniorFaculty ? (
+                        <>
+                          {c.proposedFaculty && <Typography variant="body2">{c.proposedFaculty}</Typography>}
+                          {c.juniorFaculty && (
+                            <Typography variant="caption" color="text.secondary">
+                              Junior: {c.juniorFaculty}
+                            </Typography>
+                          )}
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </TableCell>
                     <TableCell>
                       {c.moderators?.length ? (
                         <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
@@ -352,7 +447,7 @@ export default function SemesterPage() {
       </Dialog>
 
       {/* Course add/edit dialog */}
-      <Dialog open={courseOpen} onClose={() => setCourseOpen(false)} fullWidth maxWidth="xs">
+      <Dialog open={courseOpen} onClose={() => setCourseOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>{editingCourseId ? 'Edit course' : 'Add course'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2.5} sx={{ mt: 1 }}>
@@ -364,6 +459,13 @@ export default function SemesterPage() {
                 <MenuItem key={p} value={p}>{p}</MenuItem>
               ))}
             </TextField>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField type="number" label="Credit" fullWidth value={courseDraft.credits} onChange={(e) => setCourseDraft({ ...courseDraft, credits: e.target.value })} inputProps={{ min: 0, step: 0.5 }} />
+              <TextField type="number" label="Hours" fullWidth value={courseDraft.hours} onChange={(e) => setCourseDraft({ ...courseDraft, hours: e.target.value })} inputProps={{ min: 0 }} />
+              <TextField type="number" label="Sections" fullWidth value={courseDraft.sections} onChange={(e) => setCourseDraft({ ...courseDraft, sections: e.target.value })} inputProps={{ min: 0 }} />
+            </Stack>
+            <TextField label="Proposed faculty" fullWidth multiline minRows={1} maxRows={4} placeholder={'Dr. X (Sec 1 & 2)\nDr. Y (Sec 3)'} value={courseDraft.proposedFaculty} onChange={(e) => setCourseDraft({ ...courseDraft, proposedFaculty: e.target.value })} helperText="Free text — you can list per-section faculty on separate lines" />
+            <TextField label="Junior faculty" fullWidth multiline minRows={1} maxRows={4} value={courseDraft.juniorFaculty} onChange={(e) => setCourseDraft({ ...courseDraft, juniorFaculty: e.target.value })} />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -433,6 +535,45 @@ export default function SemesterPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Edit semester dates dialog */}
+      <Dialog open={datesOpen} onClose={() => setDatesOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Semester dates</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Record the start and end dates of <b>{semester?.name}</b>. This does not start or archive the
+            term — it only sets its date range.
+          </DialogContentText>
+          <Stack spacing={2.5} sx={{ mt: 1 }}>
+            <TextField
+              type="date"
+              label="Start date"
+              fullWidth
+              required
+              InputLabelProps={{ shrink: true }}
+              value={datesDraft.startedAt}
+              onChange={(e) => setDatesDraft({ ...datesDraft, startedAt: e.target.value })}
+            />
+            <TextField
+              type="date"
+              label="End date"
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              value={datesDraft.endedAt}
+              onChange={(e) => setDatesDraft({ ...datesDraft, endedAt: e.target.value })}
+              helperText="Optional — leave blank if the term has no fixed end date"
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDatesOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={submitDates} disabled={updateSemester.isPending}>
+            {updateSemester.isPending ? 'Saving…' : 'Save dates'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <BulkAddCoursesDialog open={bulkOpen} onClose={() => setBulkOpen(false)} />
 
       <ConfirmDialog
         open={Boolean(confirmDeleteCourse)}

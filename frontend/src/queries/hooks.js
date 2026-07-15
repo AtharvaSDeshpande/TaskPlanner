@@ -325,6 +325,15 @@ export function useStartSemester() {
   });
 }
 
+// Updates a semester's name and date range (activation is unchanged).
+export function useUpdateSemester() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }) => api.patch(`/semesters/${id}`, body).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['semesters'] }),
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Courses
 // ─────────────────────────────────────────────────────────────────────────────
@@ -340,6 +349,15 @@ export function useSaveCourse() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, body }) => (id ? api.patch(`/courses/${id}`, body) : api.post('/courses', body)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['courses'] }),
+  });
+}
+
+// Bulk import courses (rows parsed from the admin's spreadsheet on the client).
+export function useBulkCreateCourses() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (courses) => api.post('/courses/bulk', { courses }).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['courses'] }),
   });
 }

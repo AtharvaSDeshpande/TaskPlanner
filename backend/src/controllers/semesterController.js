@@ -20,6 +20,38 @@ export const getActive = asyncHandler(async (req, res) => {
   res.json({ success: true, semester: active ? active.toClientJSON() : null });
 });
 
+// Parses a date input, throwing a clear 400 on garbage.
+function parseDate(value, label) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) throw new ApiError(400, `${label} is not a valid date.`);
+  return d;
+}
+
+// PATCH /api/semesters/:id  { name, startedAt, endedAt }   (semester:manage)
+// Records/corrects a term's name and its date range. Activation is intentionally
+// NOT touched here — a term only becomes active via /start — so the manual
+// new-semester trigger is unchanged.
+export const updateSemester = asyncHandler(async (req, res) => {
+  const orgId = orgIdOf(req.user);
+  const semester = await Semester.findOne({ _id: req.params.id, organization: orgId });
+  if (!semester) throw new ApiError(404, 'Semester not found.');
+
+  const { name, startedAt, endedAt } = req.body;
+  if (name !== undefined) {
+    if (!String(name).trim()) throw new ApiError(400, 'Semester name cannot be empty.');
+    semester.name = String(name).trim();
+  }
+  if (startedAt !== undefined) semester.startedAt = parseDate(startedAt, 'Start date');
+  if (endedAt !== undefined) semester.endedAt = endedAt ? parseDate(endedAt, 'End date') : null;
+
+  if (semester.endedAt && semester.endedAt < semester.startedAt) {
+    throw new ApiError(400, 'End date cannot be before the start date.');
+  }
+
+  await semester.save();
+  res.json({ success: true, semester: semester.toClientJSON() });
+});
+
 // POST /api/semesters/start  { name, password }   (semester:manage)
 // Archive-by-scope: deactivates the current term and activates a fresh one. No
 // data is deleted — assignments/courses/groups stay attached to their term and
