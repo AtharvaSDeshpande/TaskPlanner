@@ -159,7 +159,17 @@ export default function DeadlinesPage() {
                       {a.title}
                     </Typography>
                     {a.description && (
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          mt: 1,
+                          maxHeight: 96,
+                          overflowY: 'auto',
+                          whiteSpace: 'pre-line',
+                          pr: 0.5,
+                        }}
+                      >
                         {a.description}
                       </Typography>
                     )}
