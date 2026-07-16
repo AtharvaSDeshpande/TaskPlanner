@@ -3,10 +3,32 @@ import { config } from '../config/env.js';
 import { logger } from '../logger/logger.jsx';
 
 const TOKEN_KEY = 'careplus.token';
+const USER_KEY = 'careplus.user';
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
 export const setToken = (t) => localStorage.setItem(TOKEN_KEY, t);
 export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
+
+// Snapshot of the signed-in user, cached alongside the token so a returning
+// visitor renders the app immediately instead of waiting on /auth/me (which
+// still revalidates in the background). Nothing secret lives here — the token is
+// the credential, and the server authorizes every request regardless.
+export const getCachedUser = () => {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+export const setCachedUser = (u) => {
+  try {
+    localStorage.setItem(USER_KEY, JSON.stringify(u));
+  } catch {
+    /* quota/serialization issues are non-fatal — we just lose the fast path */
+  }
+};
+export const clearCachedUser = () => localStorage.removeItem(USER_KEY);
 
 const newRequestId = () =>
   (globalThis.crypto?.randomUUID && globalThis.crypto.randomUUID()) ||

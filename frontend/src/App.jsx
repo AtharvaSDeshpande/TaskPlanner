@@ -5,6 +5,7 @@ import { useAuth } from './context/AuthContext.jsx';
 import { can, canManageAnyAssignment } from './utils/permissions.js';
 import AppLayout from './components/AppLayout.jsx';
 import Loading from './components/Loading.jsx';
+import Splash from './components/Splash.jsx';
 
 // Pages are route-split: each is fetched only when its route is first visited,
 // so the initial bundle carries the shell (layout, guards, auth) rather than
@@ -31,7 +32,11 @@ const canManageTerm = (u) => can(u, 'semester:manage') || can(u, 'course:manage'
 
 // Sends each authenticated user to their role's home screen.
 function RoleHome() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  // Wait for the session to resolve before choosing a destination — otherwise a
+  // returning visitor landing on "/" is bounced to /login for a frame and then
+  // redirected back once /auth/me answers.
+  if (loading) return <Splash />;
   return <Navigate to={user ? homePathFor(user.role) : '/login'} replace />;
 }
 
