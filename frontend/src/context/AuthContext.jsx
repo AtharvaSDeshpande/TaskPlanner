@@ -1,17 +1,41 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
-import api, { setToken, clearToken, getToken } from '../api/client.js';
+import api, {
+  setToken,
+  clearToken,
+  getToken,
+  getCachedUser,
+  setCachedUser,
+  clearCachedUser,
+} from '../api/client.js';
 import { deriveKey, cacheKey, loadCachedKey, clearKey } from '../crypto/e2e.js';
 import { can as canFn } from '../utils/permissions.js';
 import { logger } from '../logger/logger.jsx';
 
 const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [cryptoKey, setCryptoKey] = useState(null); // AES key for the E2E todo board
-  const [loading, setLoading] = useState(true);
+// A returning visitor has a token AND a cached user snapshot, so we can render
+// the app immediately and revalidate in the background ("stale-while-revalidate")
+// instead of blocking on /auth/me. Only a cold start (token but no snapshot) has
+// to wait, and that's what `loading` gates.
+const bootUser = () => (getToken() ? getCachedUser() : null);
 
-  // Restore the session on first load. Both the token and the derived E2E key
+export function AuthProvider({ children }) {
+  const [user, setUserState] = useState(bootUser);
+  const [cryptoKey, setCryptoKey] = useState(null); // AES key for the E2E todo board
+  const [loading, setLoading] = useState(() => Boolean(getToken()) && !getCachedUser());
+
+  // Keeps the cached snapshot in lock-step with in-memory user state, so pages
+  // that update the profile don't leave a stale copy behind for the next visit.
+  const setUser = useCallback((next) => {
+    setUserState((prev) => {
+      const value = typeof next === 'function' ? next(prev) : next;
+      if (value) setCachedUser(value);
+      else clearCachedUser();
+      return value;
+    });
+  }, []);
+
+  // Restore the session on first load. The token and the derived E2E key both
   // persist in localStorage, so a returning user is authenticated AND their
   // encrypted board (stored in the DB) decrypts automatically.
   //
@@ -23,17 +47,27 @@ export function AuthProvider({ children }) {
     let active = true;
     async function restore() {
       if (!getToken()) {
-        setLoading(false);
+        clearCachedUser();
+        if (active) {
+          setUserState(null);
+          setLoading(false);
+        }
         return;
       }
       const key = await loadCachedKey();
       if (!key) {
         clearToken();
         clearKey();
-        if (active) setLoading(false);
+        clearCachedUser();
+        if (active) {
+          setUserState(null);
+          setLoading(false);
+        }
         return;
       }
+      if (active) setCryptoKey(key);
       try {
+        // Revalidate the optimistically-hydrated session (or resolve a cold one).
         const { data } = await api.get('/auth/me');
         if (!active) return;
         setUser(data.user);
@@ -42,10 +76,14 @@ export function AuthProvider({ children }) {
           UserEmail: data.user.email,
           Role: data.user.role,
         });
-        setCryptoKey(key);
       } catch {
+        // Token rejected/expired — drop the stale session and fall back to login.
         clearToken();
         clearKey();
+        clearCachedUser();
+        if (!active) return;
+        setUserState(null);
+        setCryptoKey(null);
         logger.warn('Session restore failed — token cleared');
       } finally {
         if (active) setLoading(false);
@@ -55,7 +93,7 @@ export function AuthProvider({ children }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [setUser]);
 
   const login = useCallback(async (email, password) => {
     logger.info('Login attempt for {Email}', { Email: email });
@@ -73,14 +111,15 @@ export function AuthProvider({ children }) {
     await cacheKey(key);
     setCryptoKey(key);
     return data.user;
-  }, []);
+  }, [setUser]);
 
   const logout = useCallback(() => {
     logger.info('User logged out');
     clearToken();
     clearKey();
+    clearCachedUser();
     logger.clearUser();
-    setUser(null);
+    setUserState(null);
     setCryptoKey(null);
   }, []);
 
@@ -96,7 +135,7 @@ export function AuthProvider({ children }) {
       await cacheKey(newKey);
       setCryptoKey(newKey);
     }
-  }, []);
+  }, [setUser]);
 
   const value = useMemo(
     () => ({
@@ -110,7 +149,7 @@ export function AuthProvider({ children }) {
       applyCredentialChange,
       setUser,
     }),
-    [user, cryptoKey, loading, login, logout, applyCredentialChange],
+    [user, cryptoKey, loading, login, logout, applyCredentialChange, setUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

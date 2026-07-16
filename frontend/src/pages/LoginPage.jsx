@@ -24,6 +24,7 @@ import ThemeToggle from '../components/ThemeToggle.jsx';
 import EnvBadge from '../components/EnvBadge.jsx';
 import { useTranslation } from 'react-i18next';
 import { homePathFor } from '../components/RouteGuards.jsx';
+import Splash from '../components/Splash.jsx';
 import { brandGradient } from '../theme.js';
 
 // Icons only; the title/text strings live in i18n under auth.features[i].
@@ -31,7 +32,7 @@ const FEATURE_ICONS = [EventNoteRoundedIcon, NotificationsActiveRoundedIcon, Loc
 
 export default function LoginPage() {
   const { t } = useTranslation();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,6 +40,8 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Don't flash the sign-in form at someone who still has a valid session.
+  if (loading) return <Splash />;
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
 
   const handleSubmit = async (e) => {
