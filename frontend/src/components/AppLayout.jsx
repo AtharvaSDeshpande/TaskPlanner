@@ -1,6 +1,7 @@
 import { Suspense, useState } from 'react';
 import { Outlet, useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import {
+  Alert,
   AppBar,
   Avatar,
   Box,
@@ -69,7 +70,7 @@ export default function AppLayout() {
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
-  const { user, logout } = useAuth();
+  const { user, logout, readOnly } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -257,6 +258,11 @@ export default function AppLayout() {
         }}
       >
         <Toolbar />
+        {readOnly && (
+          <Alert severity="info" variant="outlined" sx={{ mb: 2 }}>
+            You're signed in with view-only access — you can browse everything, but changes are disabled.
+          </Alert>
+        )}
         {/* Suspense lives here — inside the layout — so lazy page chunks only
             swap the content area. Keeping AppLayout (and the mobile Drawer)
             mounted across navigations avoids tearing down an open Drawer

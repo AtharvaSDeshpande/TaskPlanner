@@ -34,9 +34,28 @@ export const ORG_ASSIGNABLE = PERMISSIONS.filter(
 
 // Built-in role → default permissions. These roles are `isSystem` and cannot be
 // edited; they define the baseline before any custom roles are layered on.
+const ADMIN_PERMISSIONS = [
+  'user:manage',
+  'role:manage',
+  'semester:manage',
+  'course:manage',
+  'group:manage',
+  'assignment:manage',
+];
+
 export const SYSTEM_ROLE_PERMISSIONS = {
   owner: ['org:manage', 'role:manage:global'],
-  admin: ['user:manage', 'role:manage', 'semester:manage', 'course:manage', 'group:manage', 'assignment:manage'],
+  admin: ADMIN_PERMISSIONS,
+  // View-only admin: the same reach as an admin (so every admin screen is
+  // visible) but all writes are blocked server-side — see isReadOnlyRole and the
+  // read-only guard in `protect`.
+  viewer: ADMIN_PERMISSIONS,
   moderator: ['assignment:manage:course'],
   student: [],
 };
+
+// Roles whose sessions are strictly read-only: they may read anything their
+// permissions allow, but every mutating request (POST/PUT/PATCH/DELETE) is
+// rejected. Enforced centrally in the `protect` middleware.
+export const READ_ONLY_ROLES = new Set(['viewer']);
+export const isReadOnlyRole = (role) => READ_ONLY_ROLES.has(role);

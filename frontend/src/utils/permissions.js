@@ -25,3 +25,8 @@ export const canManageAnyAssignment = (user) =>
   );
 
 export const canAny = (user, keys) => keys.some((k) => can(user, k));
+
+// The view-only admin: full visibility, zero write access. The server is the real
+// guarantee (it rejects every mutating request); this just drives the UI — hiding
+// write controls and showing the read-only banner.
+export const isReadOnly = (user) => user?.role === 'viewer';

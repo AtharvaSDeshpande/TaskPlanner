@@ -45,5 +45,5 @@ export const initials = (name = '') =>
     .toUpperCase();
 
 export const roleLabel = (role) =>
-  ({ owner: 'Owner', admin: 'Administrator', moderator: 'Moderator', student: 'Student' }[role] ||
+  ({ owner: 'Owner', admin: 'Administrator', viewer: 'View-only Admin', moderator: 'Moderator', student: 'Student' }[role] ||
   role);

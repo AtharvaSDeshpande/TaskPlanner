@@ -1,6 +1,11 @@
 import { Box, Typography, Stack } from '@mui/material';
+import { useAuth } from '../context/AuthContext.jsx';
 
 export default function PageHeader({ title, subtitle, action }) {
+  // The page `action` is always a primary write control (New/Add/…), so it's
+  // hidden for read-only accounts. Row-level controls are additionally neutralized
+  // by the API guard and, ultimately, the server.
+  const { readOnly } = useAuth();
   return (
     <Stack
       direction={{ xs: 'column', sm: 'row' }}
@@ -19,7 +24,7 @@ export default function PageHeader({ title, subtitle, action }) {
           </Typography>
         )}
       </Box>
-      {action}
+      {!readOnly && action}
     </Stack>
   );
 }

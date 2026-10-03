@@ -40,7 +40,7 @@ function RoleHome() {
   return <Navigate to={user ? homePathFor(user.role) : '/login'} replace />;
 }
 
-const STUDENT_STAFF = ['admin', 'moderator', 'student'];
+const STUDENT_STAFF = ['admin', 'viewer', 'moderator', 'student'];
 
 export default function App() {
   return (
