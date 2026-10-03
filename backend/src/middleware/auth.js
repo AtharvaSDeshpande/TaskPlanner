@@ -1,7 +1,11 @@
 import { User } from '../models/User.js';
 import { verifyToken } from '../utils/token.js';
 import { buildAuthContext, can } from '../utils/permissions.js';
+import { isReadOnlyRole } from '../config/permissions.js';
 import { ApiError, asyncHandler } from '../utils/ApiError.js';
+
+// HTTP methods that can change state. GET/HEAD/OPTIONS are the only reads.
+const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 // Verifies the bearer token and attaches the live user document to req.user.
 export const protect = asyncHandler(async (req, _res, next) => {
@@ -36,6 +40,16 @@ export const protect = asyncHandler(async (req, _res, next) => {
   req.user = user;
   // Effective permissions + moderated courses for this request.
   req.authContext = await buildAuthContext(user);
+
+  // Read-only accounts (e.g. the view-only admin) may read anything their
+  // permissions grant, but are blocked from EVERY mutating request here — a
+  // single chokepoint that every authenticated route passes through, so no write
+  // endpoint (now or in future) can be reached. This is the hard guarantee; the
+  // UI merely hides the controls.
+  if (isReadOnlyRole(user.role) && MUTATING_METHODS.has(req.method)) {
+    throw new ApiError(403, 'This is a read-only account. Changes are not permitted.');
+  }
+
   next();
 });
 

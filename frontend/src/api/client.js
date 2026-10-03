@@ -42,9 +42,24 @@ const api = axios.create({
 // Attach the bearer token + a correlation id, and time the request. The same
 // X-Request-Id is logged by the backend, so a browser log and a server log line
 // up for any given call.
+const MUTATING = new Set(['post', 'put', 'patch', 'delete']);
+
 api.interceptors.request.use((cfg) => {
   const token = getToken();
   if (token) cfg.headers.Authorization = `Bearer ${token}`;
+
+  // Read-only accounts (view-only admin) can't mutate anything. The backend is
+  // the real guard; this short-circuits the attempt client-side for a clean
+  // message. Auth endpoints (login/logout) are exempt so sign-in still works.
+  const method = (cfg.method || 'get').toLowerCase();
+  const isAuthCall = (cfg.url || '').startsWith('/auth');
+  if (MUTATING.has(method) && !isAuthCall && getCachedUser()?.role === 'viewer') {
+    logger.warn('Blocked a write from a read-only account: {Method} {Url}', {
+      Method: method.toUpperCase(),
+      Url: cfg.url,
+    });
+    return Promise.reject(new Error('This is a read-only account. Changes are disabled.'));
+  }
 
   const requestId = newRequestId();
   cfg.headers['X-Request-Id'] = requestId;

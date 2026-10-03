@@ -5,7 +5,7 @@ import { PROGRAMS, SECTIONS, domainOf } from '../config/academics.js';
 
 // 'owner' is the platform super-admin (no organization). admin/moderator/student
 // all belong to exactly one organization.
-export const ROLES = ['owner', 'admin', 'moderator', 'student'];
+export const ROLES = ['owner', 'admin', 'viewer', 'moderator', 'student'];
 
 const userSchema = new mongoose.Schema(
   {

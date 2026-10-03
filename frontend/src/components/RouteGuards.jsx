@@ -14,7 +14,9 @@ export function ProtectedRoute({ children }) {
 
   if (loading) return <Loading />;
   if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />;
-  if (user?.mustChangePassword && location.pathname !== '/change-password') {
+  // Read-only accounts can't change their password (it's a write), so never trap
+  // them on the first-login reset screen.
+  if (user?.mustChangePassword && user?.role !== 'viewer' && location.pathname !== '/change-password') {
     return <Navigate to="/change-password" replace />;
   }
   return children;

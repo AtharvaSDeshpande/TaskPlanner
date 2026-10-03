@@ -10,7 +10,8 @@ import { safeSearchRegex } from '../utils/sanitize.js';
 import { ApiError, asyncHandler } from '../utils/ApiError.js';
 
 // Roles an organization admin is allowed to assign within their tenant.
-const ASSIGNABLE_ROLES = ['student', 'moderator', 'admin'];
+// `viewer` is a read-only admin (full visibility, no write access).
+const ASSIGNABLE_ROLES = ['student', 'moderator', 'admin', 'viewer'];
 
 // The admin's own organization, guaranteed present by the route guard.
 function actorOrg(req) {
@@ -119,6 +120,9 @@ export const createUser = asyncHandler(async (req, res) => {
     rollNumber: String(rollNumber).trim(),
     phone: String(phone).trim(),
     enrollmentYear: String(enrollmentYear).trim(),
+    // A read-only (view-only) account can't change its own password — it's an
+    // admin-managed demo login — so don't trap it on the first-login reset.
+    ...(role === 'viewer' ? { mustChangePassword: false } : {}),
   });
   await user.setPassword(password);
   await user.save();

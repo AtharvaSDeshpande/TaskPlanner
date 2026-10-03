@@ -19,7 +19,7 @@ import { protect, requireRole, requirePermission } from '../middleware/auth.js';
 const router = Router();
 
 // Groups belong to organization members (the platform owner has no org).
-router.use(protect, requireRole('admin', 'moderator', 'student'));
+router.use(protect, requireRole('admin', 'viewer', 'moderator', 'student'));
 
 router.route('/').get(listGroups).post(createGroup);
 // Literal sub-paths must precede the ":id" route so they aren't captured by it.

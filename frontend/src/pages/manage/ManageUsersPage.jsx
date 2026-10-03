@@ -56,8 +56,8 @@ import EmptyState from '../../components/EmptyState.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import BulkAddUsersDialog from '../../components/BulkAddUsersDialog.jsx';
 
-const ROLE_COLORS = { admin: 'error', moderator: 'warning', student: 'primary' };
-const ROLE_OPTIONS = ['student', 'moderator', 'admin'];
+const ROLE_COLORS = { admin: 'error', viewer: 'info', moderator: 'warning', student: 'primary' };
+const ROLE_OPTIONS = ['student', 'moderator', 'admin', 'viewer'];
 const emptyDraft = () => ({
   name: '',
   localPart: '',
